@@ -8,4 +8,48 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Font">
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="Font.Medium">
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Font.Normal">
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="Font.Medium.XLargeSize">
+        <item name="android:textSize">@dimen/text_size_xlarge</item>
+    </style>
+
+    <style name="Font.Medium.LargeSize">
+        <item name="android:textSize">@dimen/text_size_large</item>
+    </style>
+
+    <style name="Font.Medium.LargeSize.Black">
+        <item name="android:textColor">@color/colorBlack</item>
+    </style>
+
+    <style name="Font.Medium.NormalSize">
+        <item name="android:textSize">@dimen/text_size_normal</item>
+    </style>
+
+    <style name="Font.Normal.LargeSize">
+        <item name="android:textSize">@dimen/text_size_large</item>
+    </style>
+
+    <style name="Font.Normal.NormalSize">
+        <item name="android:textSize">@dimen/text_size_normal</item>
+    </style>
+
+    <style name="LabelSelectedFolder" parent="Font.Normal.NormalSize">
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">start</item>
+        <item name="android:layout_marginStart">@dimen/dimen_2</item>
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:layout_gravity">center_vertical</item>
+    </style>
+
 </resources>

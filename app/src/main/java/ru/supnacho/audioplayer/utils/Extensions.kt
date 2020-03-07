@@ -1,17 +1,12 @@
 package ru.supnacho.audioplayer.utils
 
-import android.content.Context
 import android.util.Log
 import android.view.View
-import android.view.inputmethod.InputMethodManager
-import android.widget.ImageView
-import androidx.core.view.ViewCompat
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.BuildConfig
-import java.math.BigDecimal
-import java.math.RoundingMode
+import java.io.File
 
 
 fun safeLog(tag: String, message: String) {
@@ -36,3 +31,5 @@ fun <T> Observable<T>.subscribeAndTrack(
 fun View.setVisibility(isVisible: Boolean) {
     this.visibility = if (isVisible) View.VISIBLE else View.GONE
 }
+
+fun String.toFile() = File(this)
