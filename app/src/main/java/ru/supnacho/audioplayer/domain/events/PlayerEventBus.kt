@@ -1,9 +1,10 @@
-package ru.supnacho.audioplayer.domain
+package ru.supnacho.audioplayer.domain.events
 
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
 
-class PlayerEventBus: PlayerEventsProvider, PlayerEventsPublisher {
+class PlayerEventBus: PlayerEventsProvider,
+    PlayerEventsPublisher {
     private val bus = PublishSubject.create<PlayerEvents>()
     override fun provide(): Observable<PlayerEvents> = bus.hide()
 

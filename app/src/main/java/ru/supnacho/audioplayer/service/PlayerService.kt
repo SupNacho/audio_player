@@ -7,14 +7,12 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import ru.supnacho.audioplayer.screen.MainActivity
 import ru.supnacho.audioplayer.R
 import ru.supnacho.audioplayer.di.DaggerPlayerDependenciesComponent
-import ru.supnacho.audioplayer.di.playerDependencies
-import ru.supnacho.audioplayer.domain.PlayerEventsProvider
-import ru.supnacho.audioplayer.domain.PlayerEventsPublisher
+import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
+import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import javax.inject.Inject
 
 class PlayerService: Service() {

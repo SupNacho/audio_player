@@ -4,9 +4,9 @@ import dagger.Binds
 import dagger.Component
 import dagger.Module
 import dagger.Provides
-import ru.supnacho.audioplayer.domain.PlayerEventBus
-import ru.supnacho.audioplayer.domain.PlayerEventsProvider
-import ru.supnacho.audioplayer.domain.PlayerEventsPublisher
+import ru.supnacho.audioplayer.domain.events.PlayerEventBus
+import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
+import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import ru.supnacho.audioplayer.screen.PlayerViewModel
 import ru.supnacho.audioplayer.service.PlayerService
 import javax.inject.Singleton
@@ -28,7 +28,8 @@ abstract class PlayerDependenciesModule {
 
     @Module
     companion object {
-        private val playerEventBus =  PlayerEventBus()
+        private val playerEventBus =
+            PlayerEventBus()
         @JvmStatic
         @Provides
         @Singleton

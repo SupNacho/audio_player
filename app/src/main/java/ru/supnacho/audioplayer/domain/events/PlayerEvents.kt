@@ -1,4 +1,4 @@
-package ru.supnacho.audioplayer.domain
+package ru.supnacho.audioplayer.domain.events
 
 import java.io.File
 

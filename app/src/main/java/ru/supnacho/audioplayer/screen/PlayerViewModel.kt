@@ -2,10 +2,9 @@ package ru.supnacho.audioplayer.screen
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import io.reactivex.schedulers.Schedulers
-import ru.supnacho.audioplayer.domain.PlayerEvents
-import ru.supnacho.audioplayer.domain.PlayerEventsProvider
-import ru.supnacho.audioplayer.domain.PlayerEventsPublisher
+import ru.supnacho.audioplayer.domain.events.PlayerEvents
+import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
+import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import javax.inject.Inject
 
 class PlayerViewModel @Inject constructor(
