@@ -3,15 +3,12 @@ package ru.supnacho.audioplayer.utils
 import android.content.Context
 import android.util.Log
 import android.view.View
-import android.view.inputmethod.InputMethodManager
-import android.widget.ImageView
-import androidx.core.view.ViewCompat
+import androidx.appcompat.app.AlertDialog
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.BuildConfig
-import java.math.BigDecimal
-import java.math.RoundingMode
+import java.io.File
 
 
 fun safeLog(tag: String, message: String) {
@@ -36,3 +33,30 @@ fun <T> Observable<T>.subscribeAndTrack(
 fun View.setVisibility(isVisible: Boolean) {
     this.visibility = if (isVisible) View.VISIBLE else View.GONE
 }
+
+fun String.toFile() = File(this)
+
+fun Context?.showTwoButtonDialog(
+    message: String,
+    isCancellable: Boolean = true,
+    positiveButtonText: String,
+    negativeButtonText: String,
+    onPositiveClickListener: (() -> Unit)? = null,
+    onNegativeClickListener: (() -> Unit)? = null,
+    title: String? = null
+) {
+    this?.let {
+        AlertDialog.Builder(it).apply {
+            setMessage(message)
+            title?.let { setTitle(title) }
+            setPositiveButton(positiveButtonText) { dialog, _ ->
+                onPositiveClickListener?.invoke() ?: dialog.dismiss()
+            }
+            setNegativeButton(negativeButtonText) { dialog, _ ->
+                onNegativeClickListener?.invoke() ?: dialog.dismiss()
+            }
+            setCancelable(isCancellable)
+        }.create().show()
+    }
+}
+
