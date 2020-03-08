@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.disposables.CompositeDisposable
+import ru.supnacho.audioplayer.domain.PlayListHandler
 import ru.supnacho.audioplayer.domain.events.PlayerEvents
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
@@ -16,7 +17,8 @@ import javax.inject.Inject
 
 class PlayerViewModel @Inject constructor(
     private val playerEventsPublisher: PlayerEventsPublisher,
-    private val playerEventsProvider: PlayerEventsProvider
+    private val playerEventsProvider: PlayerEventsProvider,
+    private val playListHandler: PlayListHandler
 ) : ViewModel() {
     private val _viewState = MutableLiveData<ScreenViewState>()
     val viewState: LiveData<ScreenViewState>
@@ -68,6 +70,10 @@ class PlayerViewModel @Inject constructor(
                 _viewState.postValue(
                     _viewState.value?.copy(directoryPath = this, currentFile = selectedFile, files = list)
                 )
+                playListHandler.run {
+                    playList = list
+                    currentTrack = list.find { it.isCurrent }
+                }
             }
         } ?: run { viewStateEvents.value = ScreenEvents.noDir }
     }

@@ -7,12 +7,17 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import ru.supnacho.audioplayer.screen.MainActivity
+import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.R
 import ru.supnacho.audioplayer.di.DaggerPlayerDependenciesComponent
+import ru.supnacho.audioplayer.domain.PlayListHandler
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
+import ru.supnacho.audioplayer.screen.MainActivity
+import ru.supnacho.audioplayer.utils.safeLog
+import ru.supnacho.audioplayer.utils.subscribeAndTrack
 import javax.inject.Inject
 
 class PlayerService: Service() {
@@ -21,8 +26,11 @@ class PlayerService: Service() {
         const val STOP_ACTION = "stopService"
     }
 
+    private val disposables = CompositeDisposable()
     private var manager: NotificationManager? = null
 
+    @Inject
+    lateinit var playListHandler: PlayListHandler
     @Inject
     lateinit var playerEventsProvider: PlayerEventsProvider
     @Inject
@@ -31,6 +39,13 @@ class PlayerService: Service() {
     override fun onCreate() {
         super.onCreate()
         DaggerPlayerDependenciesComponent.create().inject(this)
+        playerEventsProvider.provide().subscribeAndTrack(
+            subscriptionsHolder = disposables,
+            onSuccess = {
+                safeLog("SERVICE EVENT", it.toString())
+            },
+            onError = { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() }
+        )
 
     }
 
@@ -83,5 +98,10 @@ class PlayerService: Service() {
             )
             manager?.createNotificationChannel(serviceChannel)
         }
+    }
+
+    override fun onDestroy() {
+        disposables.clear()
+        super.onDestroy()
     }
 }

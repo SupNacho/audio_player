@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Component
 import dagger.Module
 import dagger.Provides
+import ru.supnacho.audioplayer.domain.PlayListHandler
+import ru.supnacho.audioplayer.domain.PlayListHandlerImpl
 import ru.supnacho.audioplayer.domain.events.PlayerEventBus
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
@@ -26,13 +28,23 @@ abstract class PlayerDependenciesModule {
     @Binds
     abstract fun bindPlayerEventsProvider(publisher: PlayerEventBus): PlayerEventsProvider
 
+    @Binds
+    abstract fun bindPlayListHandler(handler: PlayListHandlerImpl): PlayListHandler
+
     @Module
     companion object {
         private val playerEventBus =
             PlayerEventBus()
+        private val playListHandler = PlayListHandlerImpl()
+
         @JvmStatic
         @Provides
         @Singleton
         fun providePlayerEventBus() = playerEventBus
+
+        @JvmStatic
+        @Provides
+        @Singleton
+        fun providePlayListHandler() = playListHandler
     }
 }
