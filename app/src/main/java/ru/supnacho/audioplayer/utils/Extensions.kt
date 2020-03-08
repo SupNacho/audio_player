@@ -1,7 +1,9 @@
 package ru.supnacho.audioplayer.utils
 
+import android.content.Context
 import android.util.Log
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
@@ -33,3 +35,28 @@ fun View.setVisibility(isVisible: Boolean) {
 }
 
 fun String.toFile() = File(this)
+
+fun Context?.showTwoButtonDialog(
+    message: String,
+    isCancellable: Boolean = true,
+    positiveButtonText: String,
+    negativeButtonText: String,
+    onPositiveClickListener: (() -> Unit)? = null,
+    onNegativeClickListener: (() -> Unit)? = null,
+    title: String? = null
+) {
+    this?.let {
+        AlertDialog.Builder(it).apply {
+            setMessage(message)
+            title?.let { setTitle(title) }
+            setPositiveButton(positiveButtonText) { dialog, _ ->
+                onPositiveClickListener?.invoke() ?: dialog.dismiss()
+            }
+            setNegativeButton(negativeButtonText) { dialog, _ ->
+                onNegativeClickListener?.invoke() ?: dialog.dismiss()
+            }
+            setCancelable(isCancellable)
+        }.create().show()
+    }
+}
+

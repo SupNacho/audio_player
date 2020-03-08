@@ -2,4 +2,8 @@
     <string name="app_name">AudioPlayer</string>
     <string name="no_folder">Folder not selected</string>
     <string name="folder_chooser">Choose file manager</string>
+    <string name="permission_btn_negative">Later</string>
+    <string name="permission_btn_positive">Settings</string>
+    <string name="permission_body">Please grant read permission for read files</string>
+    <string name="permission_header">Permission needed</string>
 </resources>

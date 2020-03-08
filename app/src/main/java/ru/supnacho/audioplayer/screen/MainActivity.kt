@@ -1,7 +1,13 @@
 package ru.supnacho.audioplayer.screen
 
+import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.lifecycle.Observer
@@ -12,6 +18,7 @@ import ru.supnacho.audioplayer.domain.files.PathExtractor
 import ru.supnacho.audioplayer.screen.adapter.FilesRvAdapter
 import ru.supnacho.audioplayer.screen.util.ViewModelFactory
 import ru.supnacho.audioplayer.service.PlayerService
+import ru.supnacho.audioplayer.utils.showTwoButtonDialog
 
 class MainActivity : AppCompatActivity() {
 
@@ -74,14 +81,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openFolderChooser() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-            type = "*/*"
+        if (isEnabledPermissionReadExternalStorage()) {
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "*/*"
+            }
+            val chooserIntent = Intent.createChooser(intent, getString(R.string.folder_chooser))
+            startActivityForResult(chooserIntent, FOLDER_REQUEST_CODE)
         }
-        val chooserIntent = Intent.createChooser(intent, getString(R.string.folder_chooser))
-        startActivityForResult(chooserIntent, FOLDER_REQUEST_CODE)
     }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openFolderChooser()
+            } else {
+                showPermissionAlert(this, R.string.permission_header)
+            }
+        }
+    }
+
+
+    private fun showPermissionAlert(context: Context, header: Int) {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", context.packageName, null)
+        }
+
+        showTwoButtonDialog(
+            title = getString(header),
+            message = getString(R.string.permission_body),
+            positiveButtonText = getString(R.string.permission_btn_positive),
+            negativeButtonText = getString(R.string.permission_btn_negative),
+            onPositiveClickListener = { context.startActivity(intent) }
+        )
+    }
+
+    private fun isEnabledPermissionReadExternalStorage(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+            val permissionsNotGranted = ArrayList<String>()
+            if (this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                permissionsNotGranted.add(PERMISSIONS_READ_EXTERNAL_STORAGE[0])
+
+            if (permissionsNotGranted.size > 0) {
+                val request: Array<String?> = permissionsNotGranted.toTypedArray()
+                requestPermissions(request, PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE)
+                return false
+            }
+        }
+
+        return true
+    }
+
+
 
     private companion object {
         const val FOLDER_REQUEST_CODE = 101
+        private const val PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 103
+        val PERMISSIONS_READ_EXTERNAL_STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 }
