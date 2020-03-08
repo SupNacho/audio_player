@@ -4,8 +4,8 @@ import dagger.Binds
 import dagger.Component
 import dagger.Module
 import dagger.Provides
-import ru.supnacho.audioplayer.domain.PlayListHandler
-import ru.supnacho.audioplayer.domain.PlayListHandlerImpl
+import ru.supnacho.audioplayer.domain.player.PlayListHandler
+import ru.supnacho.audioplayer.domain.player.PlayListHandlerImpl
 import ru.supnacho.audioplayer.domain.events.PlayerEventBus
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
@@ -35,7 +35,8 @@ abstract class PlayerDependenciesModule {
     companion object {
         private val playerEventBus =
             PlayerEventBus()
-        private val playListHandler = PlayListHandlerImpl()
+        private val playListHandler =
+            PlayListHandlerImpl()
 
         @JvmStatic
         @Provides
