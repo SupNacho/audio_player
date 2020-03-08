@@ -4,12 +4,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import io.reactivex.disposables.CompositeDisposable
-import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
 import ru.supnacho.audioplayer.domain.events.PlayerUiEvent
 import ru.supnacho.audioplayer.domain.model.FileModel
+import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.events.ScreenEvents
 import ru.supnacho.audioplayer.utils.LiveEvent
 import ru.supnacho.audioplayer.utils.safeLog
@@ -94,27 +94,33 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun onRefresh() {
-
+        viewState.value?.let {
+            getFilesList(it.directoryPath, it.currentFile )
+        } ?: run { viewStateEvents.value = ScreenEvents.noDir }
     }
 
     fun getFilesList(path: String?) {
         path?.run {
             val selectedFile = path.toFile()
             val directory = selectedFile.parent?.toFile()
-            directory?.run {
-                val list = listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
-                _viewState.postValue(
-                    _viewState.value?.copy(
-                        directoryPath = this,
-                        currentFile = selectedFile,
-                        files = list
-                    )
-                )
-                playListHandler.run {
-                    playList = list
-                    currentTrack = list.find { it.isCurrent }
-                }
-            }
+            getFilesList(directory, selectedFile)
         } ?: run { viewStateEvents.value = ScreenEvents.noDir }
+    }
+
+    private fun getFilesList(directory: File?, selectedFile: File) {
+        directory?.run {
+            val list = listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
+            _viewState.postValue(
+                _viewState.value?.copy(
+                    directoryPath = this,
+                    currentFile = selectedFile,
+                    files = list
+                )
+            )
+            playListHandler.run {
+                playList = list
+                currentTrack = list.find { it.isCurrent }
+            }
+        }
     }
 }

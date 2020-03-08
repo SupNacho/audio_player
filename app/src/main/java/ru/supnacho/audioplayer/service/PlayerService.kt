@@ -12,11 +12,12 @@ import androidx.core.app.NotificationCompat
 import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.R
 import ru.supnacho.audioplayer.di.DaggerPlayerDependenciesComponent
-import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
 import ru.supnacho.audioplayer.domain.events.PlayerUiEvent
+import ru.supnacho.audioplayer.domain.player.MediaPlayerController
+import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.MainActivity
 import ru.supnacho.audioplayer.utils.safeLog
 import ru.supnacho.audioplayer.utils.subscribeAndTrack
@@ -40,6 +41,8 @@ class PlayerService: Service() {
     lateinit var playerEventsProvider: PlayerEventsProvider
     @Inject
     lateinit var playerEventsPublisher: PlayerEventsPublisher
+    @Inject
+    lateinit var mediaPlayerController: MediaPlayerController
 
     override fun onCreate() {
         super.onCreate()
@@ -52,8 +55,8 @@ class PlayerService: Service() {
                     is PlayerServiceEvent -> {}
                     is PlayerUiEvent -> {
                         when(it){
-                            PlayerUiEvent.OnPlayPressed -> safeLog("SERVICE EVENT", it.toString())
-                            PlayerUiEvent.OnPausePressed -> safeLog("SERVICE EVENT", it.toString())
+                            PlayerUiEvent.OnPlayPressed -> mediaPlayerController.play()
+                            PlayerUiEvent.OnPausePressed -> mediaPlayerController.pause()
                             PlayerUiEvent.OnNextPressed -> {
                                 playListHandler.run{
                                     val newIndex = playList.indexOf(currentTrack)+1
@@ -62,6 +65,7 @@ class PlayerService: Service() {
                                     currentTrack?.let { fm ->
                                         playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(fm))
                                     }
+                                    mediaPlayerController.next()
                                 }
                             }
                             PlayerUiEvent.OnStopPressed -> onStopAction()
@@ -117,6 +121,7 @@ class PlayerService: Service() {
 
     private fun onStopAction() {
         manager?.cancel(0)
+        mediaPlayerController.release()
         playerEventsPublisher.publish(PlayerServiceEvent.OnStopPressed)
         stopSelf()
     }
@@ -132,6 +137,7 @@ class PlayerService: Service() {
                 "Nacho Player Service Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
+            serviceChannel.setSound(null, null)
             manager = getSystemService(
                 NotificationManager::class.java
             )
