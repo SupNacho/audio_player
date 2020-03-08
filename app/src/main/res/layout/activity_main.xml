@@ -13,11 +13,12 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <androidx.appcompat.widget.AppCompatImageButton
+        <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/btn_selectFolder"
             android:layout_width="@dimen/dimen_5"
             android:layout_height="@dimen/dimen_5"
-            android:background="@drawable/ic_folder" />
+            app:srcCompat="@drawable/ic_folder"
+            android:background="?android:selectableItemBackground" />
 
         <TextView
             android:id="@+id/tv_selectedFolder"
@@ -54,21 +55,24 @@
             android:layout_width="@dimen/dimen_5"
             android:layout_height="@dimen/dimen_5"
             android:layout_margin="@dimen/dimen_2"
-            app:srcCompat="@drawable/ic_play" />
+            app:srcCompat="@drawable/ic_play"
+            android:background="?android:selectableItemBackground" />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/iv_stopButton"
             android:layout_width="@dimen/dimen_5"
             android:layout_height="@dimen/dimen_5"
             android:layout_margin="@dimen/dimen_2"
-            app:srcCompat="@drawable/ic_stop" />
+            app:srcCompat="@drawable/ic_stop"
+            android:background="?android:selectableItemBackground" />
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/iv_nextButton"
             android:layout_width="@dimen/dimen_5"
             android:layout_height="@dimen/dimen_5"
             android:layout_margin="@dimen/dimen_2"
-            app:srcCompat="@drawable/ic_next" />
+            app:srcCompat="@drawable/ic_next"
+            android:background="?android:selectableItemBackground"/>
     </LinearLayout>
 
 </LinearLayout>

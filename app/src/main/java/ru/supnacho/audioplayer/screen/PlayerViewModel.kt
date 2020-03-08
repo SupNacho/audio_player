@@ -3,7 +3,9 @@ package ru.supnacho.audioplayer.screen
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
@@ -12,7 +14,6 @@ import ru.supnacho.audioplayer.domain.model.FileModel
 import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.events.ScreenEvents
 import ru.supnacho.audioplayer.utils.LiveEvent
-import ru.supnacho.audioplayer.utils.safeLog
 import ru.supnacho.audioplayer.utils.subscribeAndTrack
 import ru.supnacho.audioplayer.utils.toFile
 import java.io.File
@@ -20,7 +21,7 @@ import javax.inject.Inject
 
 class PlayerViewModel @Inject constructor(
     private val playerEventsPublisher: PlayerEventsPublisher,
-    private val playerEventsProvider: PlayerEventsProvider,
+    playerEventsProvider: PlayerEventsProvider,
     private val playListHandler: PlayListHandler
 ) : ViewModel() {
     private val _viewState = MutableLiveData<ScreenViewState>()
@@ -36,6 +37,7 @@ class PlayerViewModel @Inject constructor(
             controlState = ScreenViewState.ControlState.STOPPED
         )
         playerEventsProvider.provide()
+            .subscribeOn(Schedulers.computation())
             .subscribeAndTrack(
                 subscriptionsHolder = disposables,
                 onSuccess = {
@@ -44,33 +46,40 @@ class PlayerViewModel @Inject constructor(
                             when (it) {
                                 is PlayerServiceEvent.OnPlayPressed -> onPlayPressed()
                                 is PlayerServiceEvent.OnPausePressed -> onPausePressed()
-                                is PlayerServiceEvent.OnNextPressed -> {
-                                    _viewState.value =
-                                        _viewState.value?.let { svs ->
-                                            val newList = svs.files.map { item ->
-                                                FileModel(
-                                                    item.file,
-                                                    item.file == it.currentTrack.file
-                                                )
-                                            }
-                                            svs.copy(
-                                                files = newList,
-                                                currentFile = it.currentTrack.file
-                                            )
-                                        }
-
-                                }
-                                is PlayerServiceEvent.OnStopPressed ->
-                                    _viewState.value =
-                                        _viewState.value?.copy(controlState = ScreenViewState.ControlState.STOPPED)
+                                is PlayerServiceEvent.OnNextPressed -> onNextPressedByService(it)
+                                is PlayerServiceEvent.OnStopPressed -> onStopPressedByService()
                             }
                         }
-                        is PlayerUiEvent -> {
-                        }
+                        is PlayerUiEvent -> { }
                     }
                 },
-                onError = { safeLog("ON ERROR", it.message!!) }
+                onError = { viewStateEvents.postValue(ScreenEvents.ReplayingError) }
             )
+    }
+
+    private fun onStopPressedByService() {
+        _viewState.postValue(_viewState.value?.copy(controlState = ScreenViewState.ControlState.STOPPED))
+    }
+
+    private fun onNextPressedByService(nextItem: PlayerServiceEvent.OnNextPressed) {
+        _viewState.postValue(
+            _viewState.value?.let { svs ->
+                val newList = svs.files.map { item ->
+                    FileModel(
+                        item.file,
+                        item.file == nextItem.currentTrack.file
+                    )
+                }
+                svs.copy(
+                    files = newList,
+                    currentFile = nextItem.currentTrack.file,
+                    controlState = ScreenViewState.ControlState.PLAYING
+                )
+            })
+    }
+
+    fun onPlaySelected(file: FileModel) {
+        playerEventsPublisher.publish(PlayerUiEvent.OnPlaySelected(file))
     }
 
     fun onNextPressed() {
@@ -78,14 +87,12 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun onPlayPressed() {
-        _viewState.value =
-            _viewState.value?.copy(controlState = ScreenViewState.ControlState.PLAYING)
+        _viewState.postValue(_viewState.value?.copy(controlState = ScreenViewState.ControlState.PLAYING))
         playerEventsPublisher.publish(PlayerUiEvent.OnPlayPressed)
     }
 
     fun onPausePressed() {
-        _viewState.value =
-            _viewState.value?.copy(controlState = ScreenViewState.ControlState.PAUSED)
+        _viewState.postValue(_viewState.value?.copy(controlState = ScreenViewState.ControlState.PAUSED))
         playerEventsPublisher.publish(PlayerUiEvent.OnPausePressed)
     }
 
@@ -95,7 +102,7 @@ class PlayerViewModel @Inject constructor(
 
     fun onRefresh() {
         viewState.value?.let {
-            getFilesList(it.directoryPath, it.currentFile )
+            getFilesList(it.directoryPath, it.currentFile)
         } ?: run { viewStateEvents.value = ScreenEvents.noDir }
     }
 
@@ -109,18 +116,33 @@ class PlayerViewModel @Inject constructor(
 
     private fun getFilesList(directory: File?, selectedFile: File) {
         directory?.run {
-            val list = listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
-            _viewState.postValue(
-                _viewState.value?.copy(
-                    directoryPath = this,
-                    currentFile = selectedFile,
-                    files = list
+            Single.create<List<FileModel>> { emitter ->
+                    val list = listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
+                    playListHandler.run {
+                        playList = list
+                        currentTrack = list.find { it.isCurrent }
+                    }
+                    emitter.onSuccess(list)
+                }
+                .subscribeOn(Schedulers.computation())
+                .subscribeAndTrack(
+                    subscriptionsHolder = disposables,
+                    onSuccess = { list ->
+                        _viewState.postValue(
+                            _viewState.value?.copy(
+                                directoryPath = this,
+                                currentFile = selectedFile,
+                                files = list
+                            )
+                        )
+                    },
+                    onError = { viewStateEvents.postValue(ScreenEvents.noFiles) }
                 )
-            )
-            playListHandler.run {
-                playList = list
-                currentTrack = list.find { it.isCurrent }
-            }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        disposables.clear()
     }
 }

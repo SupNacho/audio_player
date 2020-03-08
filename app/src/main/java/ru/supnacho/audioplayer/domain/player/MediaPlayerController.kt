@@ -80,6 +80,7 @@ class MediaPlayerControllerImpl @Inject constructor(
     }
 
     override fun next() {
+        isPaused = false
         playListHandler.currentTrack?.file?.path?.let { startPlay(it) }
     }
 

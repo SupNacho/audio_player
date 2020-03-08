@@ -44,6 +44,10 @@
         <item name="android:textSize">@dimen/text_size_normal</item>
     </style>
 
+    <style name="SelectedTrackLabel" parent="Font.Medium.LargeSize">
+        <item name="android:textColor">@color/colorPrimary</item>
+    </style>
+
     <style name="LabelSelectedFolder" parent="Font.Normal.NormalSize">
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">start</item>

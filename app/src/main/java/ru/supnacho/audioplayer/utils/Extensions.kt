@@ -60,3 +60,23 @@ fun Context?.showTwoButtonDialog(
     }
 }
 
+fun Context?.showOneButtonDialog(
+    message: String,
+    isCancellable: Boolean = true,
+    buttonText: String,
+    title: String? = null,
+    onButtonClickListener: (() -> Unit)? = null
+) {
+    this?.let {
+        AlertDialog.Builder(it).apply {
+            title?.let { setTitle(title) }
+            setMessage(message)
+            setPositiveButton(buttonText) { dialog, _ ->
+                onButtonClickListener?.invoke() ?: dialog.dismiss()
+            }
+            setCancelable(isCancellable)
+        }.create().show()
+    }
+}
+
+

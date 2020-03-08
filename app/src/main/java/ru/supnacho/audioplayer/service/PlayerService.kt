@@ -69,6 +69,13 @@ class PlayerService: Service() {
                                 }
                             }
                             PlayerUiEvent.OnStopPressed -> onStopAction()
+                            is PlayerUiEvent.OnPlaySelected -> {
+                                playListHandler.run {
+                                    currentTrack = it.file
+                                    playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(it.file))
+                                    mediaPlayerController.next()
+                                }
+                            }
                         }
                     }
                 }
