@@ -13,10 +13,7 @@ import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.R
 import ru.supnacho.audioplayer.data.storage.LocalStorageBoundary
 import ru.supnacho.audioplayer.di.DaggerPlayerDependenciesComponent
-import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
-import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
-import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
-import ru.supnacho.audioplayer.domain.events.PlayerUiEvent
+import ru.supnacho.audioplayer.domain.events.*
 import ru.supnacho.audioplayer.domain.player.MediaPlayerController
 import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.MainActivity
@@ -52,24 +49,26 @@ class PlayerService: Service() {
         DaggerPlayerDependenciesComponent.factory().create(this).inject(this)
         playerEventsProvider.provide().subscribeAndTrack(
             subscriptionsHolder = disposables,
-            onSuccess = {
-                safeLog("SERVICE EVENT", it.toString())
-                when(it){
-                    is PlayerServiceEvent -> {}
-                    is PlayerUiEvent -> {
-                        when(it){
-                            PlayerUiEvent.OnPlayPressed -> mediaPlayerController.play()
-                            PlayerUiEvent.OnPausePressed -> mediaPlayerController.pause()
-                            PlayerUiEvent.OnNextPressed -> playNextTrack()
-                            PlayerUiEvent.OnStopPressed -> onStopAction()
-                            is PlayerUiEvent.OnPlaySelected -> playSelectedTrack(it)
-                        }
-                    }
-                }
-            },
+            onSuccess = { handleEventFromUi(it) },
             onError = { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() }
         )
 
+    }
+
+    private fun handleEventFromUi(event: PlayerEvents) {
+        safeLog("SERVICE EVENT", event.toString())
+        when (event) {
+            is PlayerServiceEvent -> {}
+            is PlayerUiEvent -> {
+                when (event) {
+                    PlayerUiEvent.OnPlayPressed -> mediaPlayerController.play()
+                    PlayerUiEvent.OnPausePressed -> mediaPlayerController.pause()
+                    PlayerUiEvent.OnNextPressed -> playNextTrack()
+                    PlayerUiEvent.OnStopPressed -> onStopAction()
+                    is PlayerUiEvent.OnPlaySelected -> playSelectedTrack(event)
+                }
+            }
+        }
     }
 
     private fun playSelectedTrack(selected: PlayerUiEvent.OnPlaySelected) {
