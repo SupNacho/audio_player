@@ -9,7 +9,7 @@ import ru.supnacho.audioplayer.utils.safeLog
 class App: Application() {
     override fun onCreate() {
         super.onCreate()
-        PlayerDiHolder.playerDependencies = DaggerPlayerDependenciesComponent.create()
+        PlayerDiHolder.playerDependencies = DaggerPlayerDependenciesComponent.factory().create(this)
         RxJavaPlugins.setErrorHandler { safeLog("RX_ERROR", it.message ?: "") }
     }
 }

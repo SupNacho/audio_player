@@ -6,10 +6,8 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
-import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
-import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
-import ru.supnacho.audioplayer.domain.events.PlayerUiEvent
+import ru.supnacho.audioplayer.data.storage.LocalStorageBoundary
+import ru.supnacho.audioplayer.domain.events.*
 import ru.supnacho.audioplayer.domain.model.FileModel
 import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.events.ScreenEvents
@@ -22,39 +20,50 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val playerEventsPublisher: PlayerEventsPublisher,
     playerEventsProvider: PlayerEventsProvider,
-    private val playListHandler: PlayListHandler
+    private val playListHandler: PlayListHandler,
+    localStorage: LocalStorageBoundary
 ) : ViewModel() {
-    private val _viewState = MutableLiveData<ScreenViewState>()
+    private val _viewState = MutableLiveData<ScreenViewState>().apply {
+        value = ScreenViewState(
+            directoryPath = File(""),
+            currentFile = File(""),
+            controlState = ScreenViewState.ControlState.STOPPED)
+    }
     val viewState: LiveData<ScreenViewState>
         get() = _viewState
     val viewStateEvents = LiveEvent<ScreenEvents>()
     private val disposables = CompositeDisposable()
 
     init {
-        _viewState.value = ScreenViewState(
-            directoryPath = File(""),
-            currentFile = File(""),
-            controlState = ScreenViewState.ControlState.STOPPED
-        )
         playerEventsProvider.provide()
             .subscribeOn(Schedulers.computation())
             .subscribeAndTrack(
                 subscriptionsHolder = disposables,
-                onSuccess = {
-                    when (it) {
-                        is PlayerServiceEvent -> {
-                            when (it) {
-                                is PlayerServiceEvent.OnPlayPressed -> onPlayPressed()
-                                is PlayerServiceEvent.OnPausePressed -> onPausePressed()
-                                is PlayerServiceEvent.OnNextPressed -> onNextPressedByService(it)
-                                is PlayerServiceEvent.OnStopPressed -> onStopPressedByService()
-                            }
-                        }
-                        is PlayerUiEvent -> { }
-                    }
-                },
+                onSuccess = { handlePlayerServiceEvent(it) },
                 onError = { viewStateEvents.postValue(ScreenEvents.ReplayingError) }
             )
+
+        restorePreviousState(localStorage)
+    }
+
+    private fun restorePreviousState(localStorage: LocalStorageBoundary) {
+        playListHandler.currentTrack?.let { getFilesList(it.file.path) }
+            ?: localStorage.restoreLastState()?.let { getFilesList(it) }
+    }
+
+    private fun handlePlayerServiceEvent(it: PlayerEvents?) {
+        when (it) {
+            is PlayerServiceEvent -> {
+                when (it) {
+                    is PlayerServiceEvent.OnPlayPressed -> onPlayPressed()
+                    is PlayerServiceEvent.OnPausePressed -> onPausePressed()
+                    is PlayerServiceEvent.OnNextPressed -> onNextPressedByService(it)
+                    is PlayerServiceEvent.OnStopPressed -> onStopPressedByService()
+                }
+            }
+            is PlayerUiEvent -> {
+            }
+        }
     }
 
     private fun onStopPressedByService() {
@@ -64,14 +73,8 @@ class PlayerViewModel @Inject constructor(
     private fun onNextPressedByService(nextItem: PlayerServiceEvent.OnNextPressed) {
         _viewState.postValue(
             _viewState.value?.let { svs ->
-                val newList = svs.files.map { item ->
-                    FileModel(
-                        item.file,
-                        item.file == nextItem.currentTrack.file
-                    )
-                }
+                svs.files.forEach { item -> item.isCurrent = item.file == nextItem.currentTrack.file }
                 svs.copy(
-                    files = newList,
                     currentFile = nextItem.currentTrack.file,
                     controlState = ScreenViewState.ControlState.PLAYING
                 )
@@ -101,9 +104,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun onRefresh() {
-        viewState.value?.let {
-            getFilesList(it.directoryPath, it.currentFile)
-        } ?: run { viewStateEvents.value = ScreenEvents.noDir }
+        viewState.value?.let { getFilesList(it.directoryPath, it.currentFile) }
+            ?: run { viewStateEvents.value = ScreenEvents.noDir }
     }
 
     fun getFilesList(path: String?) {
@@ -117,11 +119,8 @@ class PlayerViewModel @Inject constructor(
     private fun getFilesList(directory: File?, selectedFile: File) {
         directory?.run {
             Single.create<List<FileModel>> { emitter ->
-                    val list = listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
-                    playListHandler.run {
-                        playList = list
-                        currentTrack = list.find { it.isCurrent }
-                    }
+                    val list = getFilesFromDir(selectedFile)
+                    updatePlayListHandler(list)
                     emitter.onSuccess(list)
                 }
                 .subscribeOn(Schedulers.computation())
@@ -140,6 +139,16 @@ class PlayerViewModel @Inject constructor(
                 )
         }
     }
+
+    private fun updatePlayListHandler(list: List<FileModel>) {
+        playListHandler.run {
+            playList = list
+            currentTrack = list.find { it.isCurrent }
+        }
+    }
+
+    private fun File.getFilesFromDir(selectedFile: File) =
+        listFiles()?.map { FileModel(it, selectedFile == it) } ?: emptyList()
 
     override fun onCleared() {
         super.onCleared()

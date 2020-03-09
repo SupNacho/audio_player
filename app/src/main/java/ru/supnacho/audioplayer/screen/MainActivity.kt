@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
     }
 
     private fun showError(error: ScreenEvents) {
+        binding.srlRefreshFilesList.isRefreshing = false
         val errorRes = when (error) {
             ScreenEvents.noFiles -> R.string.files_reading_errors
             ScreenEvents.noDir -> R.string.dir_opening_errors
@@ -68,12 +69,14 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
 
     private fun renderUi(vs: ScreenViewState) {
         filesAdapter.data = vs.files
-        binding.srlRefreshFilesList.isRefreshing = false
-        binding.tvSelectedFolder.text = vs.directoryPath.path
-        when (vs.controlState) {
-            ScreenViewState.ControlState.PLAYING -> binding.ivPlayButton.setImageResource(R.drawable.ic_pause)
-            ScreenViewState.ControlState.PAUSED -> binding.ivPlayButton.setImageResource(R.drawable.ic_play)
-            ScreenViewState.ControlState.STOPPED -> binding.ivPlayButton.setImageResource(R.drawable.ic_play)
+        binding.run {
+            srlRefreshFilesList.isRefreshing = false
+            tvSelectedFolder.text = vs.directoryPath.path
+            when (vs.controlState) {
+                ScreenViewState.ControlState.PLAYING -> ivPlayButton.setImageResource(R.drawable.ic_pause)
+                ScreenViewState.ControlState.PAUSED -> ivPlayButton.setImageResource(R.drawable.ic_play)
+                ScreenViewState.ControlState.STOPPED -> ivPlayButton.setImageResource(R.drawable.ic_play)
+            }
         }
     }
 
@@ -168,7 +171,6 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
                 return false
             }
         }
-
         return true
     }
 

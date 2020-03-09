@@ -1,9 +1,9 @@
 package ru.supnacho.audioplayer.di
 
-import dagger.Binds
-import dagger.Component
-import dagger.Module
-import dagger.Provides
+import android.content.Context
+import dagger.*
+import ru.supnacho.audioplayer.data.storage.LocalStorageBoundary
+import ru.supnacho.audioplayer.data.storage.LocalStorageBoundaryImpl
 import ru.supnacho.audioplayer.domain.events.PlayerEventBus
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
@@ -19,6 +19,12 @@ import javax.inject.Singleton
 @Singleton
 interface PlayerDependenciesComponent : PlayerDependencies {
     val playerViewModel: PlayerViewModel
+
+    @Component.Factory
+    interface Factory {
+        fun create(@BindsInstance context: Context): PlayerDependenciesComponent
+    }
+
     fun inject(service: PlayerService)
 }
 
@@ -35,6 +41,9 @@ abstract class PlayerDependenciesModule {
 
     @Binds
     abstract fun bindMediaPlayerController(controller: MediaPlayerControllerImpl): MediaPlayerController
+
+    @Binds
+    abstract fun bindLocalStorage(localStorage: LocalStorageBoundaryImpl): LocalStorageBoundary
 
     @Module
     companion object {

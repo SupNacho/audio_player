@@ -7,5 +7,5 @@ import java.io.File
 @Parcelize
 data class FileModel (
     val file: File,
-    val isCurrent: Boolean
+    var isCurrent: Boolean
 ): Parcelable
