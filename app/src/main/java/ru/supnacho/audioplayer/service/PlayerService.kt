@@ -11,12 +11,14 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import io.reactivex.disposables.CompositeDisposable
 import ru.supnacho.audioplayer.R
+import ru.supnacho.audioplayer.data.storage.LocalStorageBoundary
 import ru.supnacho.audioplayer.di.DaggerPlayerDependenciesComponent
-import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.domain.events.PlayerEventsProvider
 import ru.supnacho.audioplayer.domain.events.PlayerEventsPublisher
 import ru.supnacho.audioplayer.domain.events.PlayerServiceEvent
 import ru.supnacho.audioplayer.domain.events.PlayerUiEvent
+import ru.supnacho.audioplayer.domain.player.MediaPlayerController
+import ru.supnacho.audioplayer.domain.player.PlayListHandler
 import ru.supnacho.audioplayer.screen.MainActivity
 import ru.supnacho.audioplayer.utils.safeLog
 import ru.supnacho.audioplayer.utils.subscribeAndTrack
@@ -40,10 +42,14 @@ class PlayerService: Service() {
     lateinit var playerEventsProvider: PlayerEventsProvider
     @Inject
     lateinit var playerEventsPublisher: PlayerEventsPublisher
+    @Inject
+    lateinit var mediaPlayerController: MediaPlayerController
+    @Inject
+    lateinit var localStorage: LocalStorageBoundary
 
     override fun onCreate() {
         super.onCreate()
-        DaggerPlayerDependenciesComponent.create().inject(this)
+        DaggerPlayerDependenciesComponent.factory().create(this).inject(this)
         playerEventsProvider.provide().subscribeAndTrack(
             subscriptionsHolder = disposables,
             onSuccess = {
@@ -52,19 +58,11 @@ class PlayerService: Service() {
                     is PlayerServiceEvent -> {}
                     is PlayerUiEvent -> {
                         when(it){
-                            PlayerUiEvent.OnPlayPressed -> safeLog("SERVICE EVENT", it.toString())
-                            PlayerUiEvent.OnPausePressed -> safeLog("SERVICE EVENT", it.toString())
-                            PlayerUiEvent.OnNextPressed -> {
-                                playListHandler.run{
-                                    val newIndex = playList.indexOf(currentTrack)+1
-                                    val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
-                                    currentTrack = playList[nextTrackIndex]
-                                    currentTrack?.let { fm ->
-                                        playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(fm))
-                                    }
-                                }
-                            }
+                            PlayerUiEvent.OnPlayPressed -> mediaPlayerController.play()
+                            PlayerUiEvent.OnPausePressed -> mediaPlayerController.pause()
+                            PlayerUiEvent.OnNextPressed -> playNextTrack()
                             PlayerUiEvent.OnStopPressed -> onStopAction()
+                            is PlayerUiEvent.OnPlaySelected -> playSelectedTrack(it)
                         }
                     }
                 }
@@ -72,6 +70,26 @@ class PlayerService: Service() {
             onError = { Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show() }
         )
 
+    }
+
+    private fun playSelectedTrack(selected: PlayerUiEvent.OnPlaySelected) {
+        playListHandler.run {
+            currentTrack = selected.file
+            playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(selected.file))
+            mediaPlayerController.next()
+        }
+    }
+
+    private fun playNextTrack() {
+        playListHandler.run {
+            val newIndex = playList.indexOf(currentTrack) + 1
+            val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
+            currentTrack = playList[nextTrackIndex]
+            currentTrack?.let { fm ->
+                playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(fm))
+            }
+            mediaPlayerController.next()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -117,6 +135,7 @@ class PlayerService: Service() {
 
     private fun onStopAction() {
         manager?.cancel(0)
+        mediaPlayerController.release()
         playerEventsPublisher.publish(PlayerServiceEvent.OnStopPressed)
         stopSelf()
     }
@@ -132,6 +151,7 @@ class PlayerService: Service() {
                 "Nacho Player Service Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
+            serviceChannel.setSound(null, null)
             manager = getSystemService(
                 NotificationManager::class.java
             )
@@ -140,6 +160,7 @@ class PlayerService: Service() {
     }
 
     override fun onDestroy() {
+        playListHandler.currentTrack?.file?.path?.let { localStorage.saveLastState(it) }
         disposables.clear()
         super.onDestroy()
     }

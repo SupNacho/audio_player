@@ -7,4 +7,9 @@
     <string name="permission_btn_positive">Settings</string>
     <string name="permission_body">Please grant read permission for read files</string>
     <string name="permission_header">Permission needed</string>
+
+    <string name="files_reading_errors">Get errors while try get files</string>
+    <string name="dir_opening_errors">Get errors while try open dir</string>
+    <string name="replay_errors">Get errors while try play sound</string>
+    <string name="common_ok">Ok</string>
 </resources>

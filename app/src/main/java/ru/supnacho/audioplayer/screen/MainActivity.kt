@@ -15,12 +15,15 @@ import androidx.lifecycle.ViewModelProvider
 import ru.supnacho.audioplayer.R
 import ru.supnacho.audioplayer.databinding.ActivityMainBinding
 import ru.supnacho.audioplayer.domain.files.PathExtractor
+import ru.supnacho.audioplayer.domain.model.FileModel
 import ru.supnacho.audioplayer.screen.adapter.FilesRvAdapter
+import ru.supnacho.audioplayer.screen.events.ScreenEvents
 import ru.supnacho.audioplayer.screen.util.ViewModelFactory
 import ru.supnacho.audioplayer.service.PlayerService
+import ru.supnacho.audioplayer.utils.showOneButtonDialog
 import ru.supnacho.audioplayer.utils.showTwoButtonDialog
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListener {
 
     private lateinit var filesAdapter: FilesRvAdapter
     private lateinit var binding: ActivityMainBinding
@@ -32,13 +35,30 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        filesAdapter = FilesRvAdapter()
         binding.run {
             initRecycler()
             initButtons()
         }
-        viewModel.viewState.observe(this, Observer { renderUi(it) })
+        initViewStateSubscription()
         startPlayerService()
+    }
+
+    private fun initViewStateSubscription() {
+        viewModel.viewState.observe(this, Observer { renderUi(it) })
+        viewModel.viewStateEvents.observe(this, Observer { showError(it) })
+    }
+
+    private fun showError(error: ScreenEvents) {
+        binding.srlRefreshFilesList.isRefreshing = false
+        val errorRes = when (error) {
+            ScreenEvents.noFiles -> R.string.files_reading_errors
+            ScreenEvents.noDir -> R.string.dir_opening_errors
+            ScreenEvents.ReplayingError -> R.string.replay_errors
+        }
+        showOneButtonDialog(
+            message = getString(errorRes),
+            buttonText = getString(R.string.common_ok)
+        )
     }
 
     private fun startPlayerService() {
@@ -49,16 +69,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderUi(vs: ScreenViewState) {
         filesAdapter.data = vs.files
-        binding.srlRefreshFilesList.isRefreshing = false
-        binding.tvSelectedFolder.text = vs.directoryPath.path
-        when (vs.controlState) {
-            ScreenViewState.ControlState.PLAYING -> binding.ivPlayButton.setImageResource(R.drawable.ic_pause)
-            ScreenViewState.ControlState.PAUSED -> binding.ivPlayButton.setImageResource(R.drawable.ic_play)
-            ScreenViewState.ControlState.STOPPED -> binding.ivPlayButton.setImageResource(R.drawable.ic_play)
+        binding.run {
+            srlRefreshFilesList.isRefreshing = false
+            tvSelectedFolder.text = vs.directoryPath.path
+            when (vs.controlState) {
+                ScreenViewState.ControlState.PLAYING -> ivPlayButton.setImageResource(R.drawable.ic_pause)
+                ScreenViewState.ControlState.PAUSED -> ivPlayButton.setImageResource(R.drawable.ic_play)
+                ScreenViewState.ControlState.STOPPED -> ivPlayButton.setImageResource(R.drawable.ic_play)
+            }
         }
     }
 
     private fun ActivityMainBinding.initRecycler() {
+        filesAdapter = FilesRvAdapter(this@MainActivity)
         rvAudioList.adapter = filesAdapter
     }
 
@@ -79,6 +102,11 @@ class MainActivity : AppCompatActivity() {
             startPlayerService()
             viewModel.onNextPressed()
         }
+    }
+
+    override fun onSelectedFile(file: FileModel) {
+        startPlayerService()
+        viewModel.onPlaySelected(file)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -143,7 +171,6 @@ class MainActivity : AppCompatActivity() {
                 return false
             }
         }
-
         return true
     }
 
