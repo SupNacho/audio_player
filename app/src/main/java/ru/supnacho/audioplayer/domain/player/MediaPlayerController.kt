@@ -34,10 +34,13 @@ class MediaPlayerControllerImpl @Inject constructor(
 
     private fun setNextFile() {
         playListHandler.run {
-            val newIndex = playList.indexOf(currentTrack) + 1
-            val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
-            currentTrack = playList[nextTrackIndex]
-            currentTrack?.let { playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(it)) }
+            if (playList.isNotEmpty()) {
+                val newIndex = playList.indexOf(currentTrack) + 1
+                val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
+                currentTrack = playList[nextTrackIndex]
+                currentTrack?.let { playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(it)) }
+            } else
+                playerEventsPublisher.publish(PlayerServiceEvent.OnStopPressed)
         }
     }
 
@@ -73,7 +76,7 @@ class MediaPlayerControllerImpl @Inject constructor(
         try {
             mediaPlayer.pause()
             isPaused = true
-        } catch (e: Exception){
+        } catch (e: Exception) {
             safeLog("MEDIA_PLAYER", e.message!!)
         }
 
