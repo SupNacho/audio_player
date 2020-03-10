@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.lifecycle.Observer
@@ -40,7 +41,6 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
             initButtons()
         }
         initViewStateSubscription()
-        startPlayerService()
     }
 
     private fun initViewStateSubscription() {
@@ -62,9 +62,10 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
     }
 
     private fun startPlayerService() {
-        startService(
-            Intent(this@MainActivity, PlayerService::class.java)
-        )
+        if (isEnabledPermissionForegroundService())
+            startService(
+                Intent(this@MainActivity, PlayerService::class.java)
+            )
     }
 
     private fun renderUi(vs: ScreenViewState) {
@@ -109,6 +110,11 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
         viewModel.onPlaySelected(file)
     }
 
+    override fun onStart() {
+        super.onStart()
+        startPlayerService()
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == FOLDER_REQUEST_CODE) {
@@ -134,24 +140,33 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openFolderChooser()
-            } else {
-                showPermissionAlert(this)
+        when (requestCode) {
+            PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    openFolderChooser()
+                } else {
+                    showPermissionAlert(this, R.string.permission_storage_body)
+                }
+            }
+            PERMISSIONS_REQUEST_FOREGROUND_SERVICE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startPlayerService()
+                } else {
+                    showPermissionAlert(this, R.string.permission_service_body)
+                }
             }
         }
     }
 
 
-    private fun showPermissionAlert(context: Context) {
+    private fun showPermissionAlert(context: Context, bodyRes: Int) {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", context.packageName, null)
         }
 
         showTwoButtonDialog(
             title = getString(R.string.permission_header),
-            message = getString(R.string.permission_body),
+            message = getString(bodyRes),
             positiveButtonText = getString(R.string.permission_btn_positive),
             negativeButtonText = getString(R.string.permission_btn_negative),
             onPositiveClickListener = { context.startActivity(intent) }
@@ -163,7 +178,7 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
 
             val permissionsNotGranted = ArrayList<String>()
             if (this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                permissionsNotGranted.add(PERMISSIONS_READ_EXTERNAL_STORAGE[0])
+                permissionsNotGranted.add(PERMISSIONS_READ_EXTERNAL_STORAGE)
 
             if (permissionsNotGranted.size > 0) {
                 val request: Array<String?> = permissionsNotGranted.toTypedArray()
@@ -174,11 +189,30 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
         return true
     }
 
+    private fun isEnabledPermissionForegroundService(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val permissionsNotGranted = ArrayList<String>()
+            if (this.checkSelfPermission(Manifest.permission.FOREGROUND_SERVICE) != PackageManager.PERMISSION_GRANTED)
+                permissionsNotGranted.add(PERMISSIONS_FOREGROUND_SERVICE)
+
+            if (permissionsNotGranted.size > 0) {
+                val request: Array<String?> = permissionsNotGranted.toTypedArray()
+                requestPermissions(request, PERMISSIONS_REQUEST_FOREGROUND_SERVICE)
+                return false
+            }
+        }
+        return true
+    }
+
 
     private companion object {
         const val FOLDER_REQUEST_CODE = 101
         const val PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 103
+        const val PERMISSIONS_REQUEST_FOREGROUND_SERVICE = 104
         const val TYPE_WAV = "audio/x-wav"
-        val PERMISSIONS_READ_EXTERNAL_STORAGE = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        const val PERMISSIONS_READ_EXTERNAL_STORAGE = Manifest.permission.READ_EXTERNAL_STORAGE
+
+        @RequiresApi(Build.VERSION_CODES.P)
+        const val PERMISSIONS_FOREGROUND_SERVICE = Manifest.permission.FOREGROUND_SERVICE
     }
 }

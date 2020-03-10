@@ -99,15 +99,17 @@ class PlayerService : Service() {
     }
 
     private fun playNextTrack() {
-        isPlaying = true
         playListHandler.run {
-            val newIndex = playList.indexOf(currentTrack) + 1
-            val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
-            currentTrack = playList[nextTrackIndex]
-            currentTrack?.let { fm ->
-                playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(fm))
+            if (playList.isNotEmpty()) {
+                isPlaying = true
+                val newIndex = playList.indexOf(currentTrack) + 1
+                val nextTrackIndex = if (newIndex > playList.lastIndex) 0 else newIndex
+                currentTrack = playList[nextTrackIndex]
+                currentTrack?.let { fm ->
+                    playerEventsPublisher.publish(PlayerServiceEvent.OnNextPressed(fm))
+                }
+                mediaPlayerController.next()
             }
-            mediaPlayerController.next()
         }
     }
 
