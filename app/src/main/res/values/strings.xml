@@ -11,5 +11,5 @@
     <string name="files_reading_errors">Get errors while try get files</string>
     <string name="dir_opening_errors">Get errors while try open dir</string>
     <string name="replay_errors">Get errors while try play sound</string>
-    <string name="common_ok">Ok</string>
+    <string name="common_ok">OK</string>
 </resources>
