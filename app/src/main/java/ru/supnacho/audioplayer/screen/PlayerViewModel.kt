@@ -24,10 +24,12 @@ class PlayerViewModel @Inject constructor(
     localStorage: LocalStorageBoundary
 ) : ViewModel() {
     private val _viewState = MutableLiveData<ScreenViewState>().apply {
-        value = ScreenViewState(
+        postValue(
+            ScreenViewState(
             directoryPath = File(""),
             currentFile = File(""),
             controlState = ScreenViewState.ControlState.STOPPED)
+        )
     }
     val viewState: LiveData<ScreenViewState>
         get() = _viewState
@@ -105,7 +107,7 @@ class PlayerViewModel @Inject constructor(
 
     fun onRefresh() {
         viewState.value?.let { getFilesList(it.directoryPath, it.currentFile) }
-            ?: run { viewStateEvents.value = ScreenEvents.noDir }
+            ?: run { viewStateEvents.value = ScreenEvents.NoDir }
     }
 
     fun getFilesList(path: String?) {
@@ -113,7 +115,7 @@ class PlayerViewModel @Inject constructor(
             val selectedFile = path.toFile()
             val directory = selectedFile.parent?.toFile()
             getFilesList(directory, selectedFile)
-        } ?: run { viewStateEvents.value = ScreenEvents.noDir }
+        } ?: run { viewStateEvents.value = ScreenEvents.NoDir }
     }
 
     private fun getFilesList(directory: File?, selectedFile: File) {
@@ -135,7 +137,7 @@ class PlayerViewModel @Inject constructor(
                             )
                         )
                     },
-                    onError = { viewStateEvents.postValue(ScreenEvents.noFiles) }
+                    onError = { viewStateEvents.postValue(ScreenEvents.NoFiles) }
                 )
         }
     }
