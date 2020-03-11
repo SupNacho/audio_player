@@ -51,8 +51,8 @@ class MainActivity : AppCompatActivity(), FilesRvAdapter.OnPlaySelectedFileListe
     private fun showError(error: ScreenEvents) {
         binding.srlRefreshFilesList.isRefreshing = false
         val errorRes = when (error) {
-            ScreenEvents.noFiles -> R.string.files_reading_errors
-            ScreenEvents.noDir -> R.string.dir_opening_errors
+            ScreenEvents.NoFiles -> R.string.files_reading_errors
+            ScreenEvents.NoDir -> R.string.dir_opening_errors
             ScreenEvents.ReplayingError -> R.string.replay_errors
         }
         showOneButtonDialog(
